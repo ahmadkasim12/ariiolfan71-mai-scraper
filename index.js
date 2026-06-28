@@ -29,7 +29,7 @@
 
         const trophyTitles = Array.from(doc.querySelectorAll(".trophy_inner_block span"))
             .map(span => span.innerText.trim());
-            
+
         const playCounts = (function () {
             const block = doc.querySelector(".m_5.m_b_5.t_r.f_12");
             if (!block) return { currentVersion: null, total: null };
@@ -92,6 +92,21 @@
         URL.revokeObjectURL(url);
     }
 
+    // Recursively replaces null/undefined with "" throughout an object or array,
+    // so every field — current and any added later — is covered automatically.
+    function nullsToEmptyStrings(value) {
+        if (value === null || value === undefined) return "";
+        if (Array.isArray(value)) return value.map(nullsToEmptyStrings);
+        if (typeof value === "object") {
+            const out = {};
+            for (const key of Object.keys(value)) {
+                out[key] = nullsToEmptyStrings(value[key]);
+            }
+            return out;
+        }
+        return value;
+    }
+
     async function runAll() {
         const [playerDataDoc, circleDoc, partnerDoc] = await Promise.all([
             fetchDoc("/maimai-mobile/playerData/"),
@@ -99,12 +114,14 @@
             fetchDoc("/maimai-mobile/collection/partner/"),
         ]);
 
-        const result = {
+        const rawResult = {
             scrapedAt: new Date().toISOString(),
             playerData: scrapePlayerData(playerDataDoc),
             circle: scrapeCircle(circleDoc),
             partner: scrapeFirstPartner(partnerDoc),
         };
+
+        const result = nullsToEmptyStrings(rawResult);
 
         const json = JSON.stringify(result, null, 2);
         console.log(json);
